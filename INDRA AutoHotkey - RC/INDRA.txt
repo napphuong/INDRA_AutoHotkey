@@ -1,5 +1,9 @@
+^1::
+Gosub, PrepareData
+Gosub, DownloadOnePage
+return
 
-^0::
+;^0::
 InputData:
 Gosub, PrepareData
 ;load INDRA	
@@ -46,12 +50,12 @@ return
 
 PrepareData:
 ;copy folder name
-Clipboard =
-DownloadItem =
-Send, {F2}
-Send ^c
-ClipWait 1
-DownloadItem:= "D:\Downloads\" . Clipboard
+;Clipboard =
+;DownloadItem =
+;Send, {F2}
+;Send ^c
+;ClipWait 1
+;DownloadItem:= "D:\Downloads\" . Clipboard
 
 ;switch to INDRA
 WinActivate PMS INDRA - Internet Explorer
@@ -66,7 +70,7 @@ sleep, 50
 }
 return
 
-^1::
+;^1::
 DownloadTextFile:
 Gosub, InputData
 ;download text file
@@ -77,7 +81,7 @@ Gosub, FinishDownload2
 sleep 100
 return
 
-^2::
+;^2::
 Gosub, PrepareData
 DownloadOnePage:
     ; check if IE is loaded.
@@ -147,12 +151,12 @@ DownloadOnePage:
     }
 return
 
-^3::
+;^3::
 Gosub, PrepareData
 Gosub, DownloadFromHereToTheEnd
 return
 
-^4::
+;^4::
 SearchAndDownloadAll:
 Gosub, DownloadTextFile
 ;search file
@@ -184,7 +188,7 @@ Gosub, DownloadOnePage
 }
 return
 
-^5::
+;^5::
 InputBox, UserInput, Items, Please enter item number
 Loop, %UserInput%
 {
@@ -193,7 +197,7 @@ Gosub, SearchAndDownloadAll
 }
 return
 
-^6::
+;^6::
 InputBox, UserInput, Items, Please enter item number
 Loop, %UserInput%
 {
@@ -217,7 +221,11 @@ Send ^+n
 Sleep, 1000
 Send ^v
 Sleep, 1000
-Send, {backspace}
+if (StrLen(MyString)>11)
+{
+     Send, {backspace}
+     Sleep, 100
+}
 Sleep, 1000
 Send, ^a
 Sleep, 100
@@ -298,13 +306,7 @@ Download2:
 WinWaitActive, File Transfer for PMS - Internet Explorer
 
 ; wait for loading
-Loop
-{
-  PixelSearch, Px, Py, 26, 80, 40, 96, 0x212121, 5, RGB
-  if !ErrorLevel
-     break
-  sleep, 50
-}
+Sleep, 1500
 Click 408, 67
 
 ; wait for "Download" button is shown
@@ -338,21 +340,15 @@ Click 320, 610
 sleep, 500
 Click 330, 662
 WinWaitActive, Save As
-Loop
-{
-  PixelSearch, Px, Py, 640, 70, 663, 92, 0x006ECA, 3, RGB
-  if !ErrorLevel
-     break
-  sleep, 50
-}
-Click 398, 48
+Sleep 1500
+;Click 398, 48
+;sleep, 700
+;send %DownloadItem%
+;sleep, 700
+;send {enter}
+MouseMove 475, 479
 sleep, 700
-send %DownloadItem%
-sleep, 700
-send {enter}
-MouseMove 515, 447
-sleep, 700
-Click 515, 447
+Click 475, 479
 sleep, 700
 return
 
@@ -374,16 +370,10 @@ return
 FinishDownload1:
 WinActivate, Download E-File - Internet Explorer
 WinWaitActive, Download E-File - Internet Explorer
-MouseMove 420, 17
-Loop
-{
-  PixelSearch, Px, Py, 397, 2, 439, 27, 0xE81123, 5, RGB
-  if !ErrorLevel
-     break
-  sleep, 50
-}
-Click 420, 17
-sleep, 200
+Sleep 100
+Send, {Alt down}
+Send, {F4}
+Send, {Alt up}
 return
 
 FinishDownload0:
