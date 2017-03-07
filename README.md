@@ -10,7 +10,10 @@ Ctrl+5: Create folder from file id.xlsx, download text file and all files
 Ctrl+6: Create folder from file id.xlsx and download text file
 
 # Issues
-2017.03.05: Some time, the tools does not click Save button at "Save As" window
 
 # Change Logs:
+
+2017.03.06 SOLVED Issues 2017.03.05: Some time, the tools does not click Save button at "Save As" window
+(This issue due to window switch accidentally -> solved by re-active the window before clicking)
+
 2017.03.05: First Release

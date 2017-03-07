@@ -11,7 +11,8 @@ if !ErrorLevel
     break
 sleep, 50
 }
-
+WinActivate PMS INDRA - Internet Explorer
+WinWaitActive, PMS INDRA - Internet Explorer
 ;Wait for IE window loaded.
 Loop
 {
@@ -20,6 +21,8 @@ if !ErrorLevel
     break
 sleep, 50
 }
+WinActivate PMS INDRA - Internet Explorer
+WinWaitActive, PMS INDRA - Internet Explorer
 ;input search value and option
 Loop, 3
 {
@@ -201,6 +204,55 @@ Gosub, DownloadTextFile
 }
 return
 
+^7::
+send, {right} {down}
+send, =LEFT(A2,10)
+send, {enter} {up}
+Gosub, FillAndRemoveDuplicate
+send, {right}
+send, =LEFT(B2,5)
+send, {enter} {up}
+Gosub, FillAndRemoveDuplicate
+return
+
+FillAndRemoveDuplicate:
+send, ^+{down}
+;fill
+click 102, 59
+sleep 500
+click 1115, 38
+sleep 500
+click 50, 14
+sleep 500
+
+;copy paste
+click 102, 59
+sleep 500
+click 77, 39
+sleep 500
+click 25, 65
+sleep 500
+click 17, 123
+sleep 500
+
+;remove duplicate
+click 379, -16
+sleep 500
+click 889, 37
+sleep 500
+WinWaitActive, Remove Duplicates
+click 29, 122
+sleep 500
+click 240, 158
+Sleep 1000
+WinWaitActive, Remove Duplicates
+click 315, 254
+sleep 500
+WinWaitActive, Microsoft Excel
+click 218, 97
+sleep 500
+return
+
 MakingFolder:
 WinActivate, id.xlsx - Excel
 WinWaitActive, id.xlsx - Excel
@@ -316,6 +368,7 @@ Loop
 }
 Click 245, 163
 
+Clipboard:= DownloadItem
 ; wait for "Save" button is shown
 Loop
 {
@@ -337,22 +390,19 @@ Click 320, 610
 sleep, 500
 Click 330, 662
 WinWaitActive, Save As
-Loop
-{
-  PixelSearch, Px, Py, 640, 70, 663, 92, 0x006ECA, 3, RGB
-  if !ErrorLevel
-     break
-  sleep, 50
-}
+WinActivate, Save As
+WinWaitActive, Save As
 Click 398, 48
-sleep, 700
-send %DownloadItem%
-sleep, 700
+Send, ^v
 send {enter}
+WinActivate, Save As
+WinWaitActive, Save As
 MouseMove 515, 447
 sleep, 700
+WinActivate, Save As
+WinWaitActive, Save As
 Click 515, 447
-sleep, 700
+sleep, 200
 return
 
 FinishDownload2:
