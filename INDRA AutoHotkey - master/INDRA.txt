@@ -1,6 +1,20 @@
 ^0::
 InputData:
 Gosub, PrepareData
+InputData2:
+
+;switch to INDRA
+WinActivate PMS INDRA - Internet Explorer
+WinWaitActive, PMS INDRA - Internet Explorer
+sleep 500
+Loop
+{
+PixelSearch, Px, Py, 943, 64, 995, 89, 0xFF0000, 3, RGB
+if !ErrorLevel
+    break
+sleep, 50
+}
+
 ;load INDRA	
 Click 148, 211
 ;Wait for IE window become blank.
@@ -55,22 +69,22 @@ Send ^c
 ClipWait 1
 DownloadItem:= "D:\Downloads\" . Clipboard
 
-;switch to INDRA
-WinActivate PMS INDRA - Internet Explorer
-WinWaitActive, PMS INDRA - Internet Explorer
-sleep 500
-Loop
-{
-PixelSearch, Px, Py, 943, 64, 995, 89, 0xFF0000, 3, RGB
-if !ErrorLevel
-    break
-sleep, 50
-}
 return
 
 ^1::
 DownloadTextFile:
 Gosub, InputData
+;download text file
+WinActivate PMS INDRA - Internet Explorer
+Click 358, 199
+Gosub, Download2
+Gosub, FinishDownload2
+sleep 100
+return
+
+DownloadTextFile2:
+;skip prepare data
+Gosub, InputData2
 ;download text file
 WinActivate PMS INDRA - Internet Explorer
 Click 358, 199
@@ -157,6 +171,36 @@ return
 ^4::
 SearchAndDownloadAll:
 Gosub, DownloadTextFile
+;search file
+WinActivate PMS INDRA - Internet Explorer
+WinWaitActive, PMS INDRA - Internet Explorer
+Click 271, 201
+
+Loop
+{
+Gosub, DownloadOnePage
+; exit loop and minimize
+    if (toValue = totalRecordsNumber){
+        Gosub, FinishDownload0
+        return
+    }
+    sleep, 50
+    WinActivate PMS INDRA - Internet Explorer
+    WinWaitActive, PMS INDRA - Internet Explorer
+    Click 301, 219
+    ;Wait for IE window become blank.
+    Loop
+    {
+    PixelSearch, Px, Py, 398, 125, 419, 137, 0xFFFFFF, 3, RGB
+    if !ErrorLevel
+        break
+    sleep, 50
+    }
+}
+return
+
+SearchAndDownloadAll2:
+Gosub, DownloadTextFile2
 ;search file
 WinActivate PMS INDRA - Internet Explorer
 WinWaitActive, PMS INDRA - Internet Explorer
@@ -272,6 +316,53 @@ Send, {backspace}
 Sleep, 1000
 Send, ^a
 Sleep, 100
+return
+
+^8::
+InputBox, DownloadFolder, Items, Please enter download folder name , , , , , , , , D:\Downloads\
+WinActivate, id.xlsx - Excel
+WinWaitActive, id.xlsx - Excel
+Clipboard =
+MyFolder1 = 
+Send ^c
+ClipWait 1
+MyFolder1 := Clipboard
+StringTrimRight, MyFolder1, MyFolder1 , 2
+; MyFolder1, vd: "000 - Documents common to whole plant"
+
+Loop {
+WinActivate, id.xlsx - Excel
+WinWaitActive, id.xlsx - Excel
+Send, {Down}
+Clipboard =
+MyFolder3 = 
+; MyFolder3, vd: "D-000-1225"
+Send ^c
+ClipWait 1
+MyFolder3 := Clipboard
+
+If (StrLen(MyFolder3) < 5)
+    break
+
+MyFolder3 := SubStr(MyFolder3, 1 , 10)
+MyFolder2:= SubStr(MyFolder3, 1 , 5)
+; MyFolder2, vd: "D-000"
+
+IfNotExist, %DownloadFolder%%MyFolder1%\%MyFolder2%\
+    {
+    FileCreateDir, %DownloadFolder%%MyFolder1%\%MyFolder2%\
+    Clipboard= %MyFolder2%
+    DownloadItem= %DownloadFolder%%MyFolder1%\%MyFolder2%\
+    Gosub, DownloadTextFile2
+    }
+IfNotExist, %DownloadFolder%%MyFolder1%\%MyFolder2%\%MyFolder3%\
+    {
+    FileCreateDir, %DownloadFolder%%MyFolder1%\%MyFolder2%\%MyFolder3%\
+    Clipboard= %MyFolder3%
+    DownloadItem= %DownloadFolder%%MyFolder1%\%MyFolder2%\%MyFolder3%\
+    Gosub, SearchAndDownloadAll2
+    }
+}
 return
 
 DownloadItems:
@@ -442,8 +533,5 @@ Send, {Alt down}
 Send, {space}
 Send, {Alt up}
 Sleep 50
-Send, n
-WinActivate, Downloads
-WinWaitActive, Downloads
-	
+Send, n	
 return
