@@ -252,14 +252,7 @@ return
 send, {right} {down}
 send, =LEFT(A2,10)
 send, {enter} {up}
-Gosub, FillAndRemoveDuplicate
-send, {right}
-send, =LEFT(B2,5)
-send, {enter} {up}
-Gosub, FillAndRemoveDuplicate
-return
 
-FillAndRemoveDuplicate:
 send, ^+{down}
 ;fill
 click 102, 59
