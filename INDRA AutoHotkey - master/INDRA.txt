@@ -111,7 +111,7 @@ DownloadOnePage:
     Clipboard =
     MyString =
     Send ^a
-    sleep 100
+    sleep 500
     Send ^c
     ClipWait 1
     sleep 500
@@ -244,7 +244,7 @@ InputBox, UserInput, Items, Please enter item number
 Loop, %UserInput%
 {
 Gosub, MakingFolder
-Gosub, DownloadTextFile
+Gosub, DownloadTextFile2
 }
 return
 
@@ -299,15 +299,10 @@ MyString =
 Send ^c
 ClipWait 1
 MyString := Clipboard
-WinActivate Downloads
-WinWaitActive, Downloads
-Send ^+n
-Sleep, 1000
-Send ^v
-Sleep, 1000
-Send, {backspace}
-Sleep, 1000
-Send, ^a
+StringTrimRight, MyString , MyString , 2
+IfNotExist, D:\Downloads\%MyString%\
+    FileCreateDir, D:\Downloads\%MyString%\
+DownloadItem:= "D:\Downloads\" . MyString . "\"
 Sleep, 100
 return
 
@@ -315,13 +310,19 @@ return
 InputBox, DownloadFolder, Items, Please enter download folder name , , , , , , , , D:\Downloads\
 WinActivate, id.xlsx - Excel
 WinWaitActive, id.xlsx - Excel
+
+Loop {
 Clipboard =
 MyFolder1 = 
 Send ^c
 ClipWait 1
-MyFolder1 := Clipboard
-StringTrimRight, MyFolder1, MyFolder1 , 2
+MyFolder1:= Clipboard
+StringTrimRight, MyFolder1, MyFolder1, 2
+MyFolder1:= Trim (MyFolder1)
+
 ; MyFolder1, vd: "000 - Documents common to whole plant"
+If (StrLen(MyFolder1) < 2)
+    break
 
 Loop {
 WinActivate, id.xlsx - Excel
@@ -333,12 +334,11 @@ MyFolder3 =
 Send ^c
 ClipWait 1
 MyFolder3 := Clipboard
-
 If (StrLen(MyFolder3) < 5)
     break
+MyFolder3 := Trim(SubStr(MyFolder3, 1 , 10))
+MyFolder2 := Trim(SubStr(MyFolder3, 1 , 5))
 
-MyFolder3 := SubStr(MyFolder3, 1 , 10)
-MyFolder2:= SubStr(MyFolder3, 1 , 5)
 ; MyFolder2, vd: "D-000"
 
 IfNotExist, %DownloadFolder%%MyFolder1%\%MyFolder2%\
@@ -348,6 +348,7 @@ IfNotExist, %DownloadFolder%%MyFolder1%\%MyFolder2%\
     DownloadItem= %DownloadFolder%%MyFolder1%\%MyFolder2%\
     Gosub, DownloadTextFile2
     }
+
 IfNotExist, %DownloadFolder%%MyFolder1%\%MyFolder2%\%MyFolder3%\
     {
     FileCreateDir, %DownloadFolder%%MyFolder1%\%MyFolder2%\%MyFolder3%\
@@ -355,6 +356,12 @@ IfNotExist, %DownloadFolder%%MyFolder1%\%MyFolder2%\%MyFolder3%\
     DownloadItem= %DownloadFolder%%MyFolder1%\%MyFolder2%\%MyFolder3%\
     Gosub, SearchAndDownloadAll2
     }
+}
+WinActivate, id.xlsx - Excel
+WinWaitActive, id.xlsx - Excel
+Send, {Up}
+Send, ^{Up}
+Send, {Right}
 }
 return
 
@@ -461,31 +468,36 @@ Loop
      break
   sleep, 50
 }
-; prevent download finish message case
-Loop
-{
-  PixelSearch, Px, Py, 109, 604, 137, 616, 0xFFFFFF, 3, RGB
-  if !ErrorLevel
-     break
-  sleep, 50
-}
 sleep, 500
 Click 320, 610
-sleep, 500
-Click 330, 662
-WinWaitActive, Save As
+Send, {down}
+Send, {enter}
+WinWait, Save As
 WinActivate, Save As
 WinWaitActive, Save As
 Click 398, 48
 Send, ^v
 send {enter}
-WinActivate, Save As
-WinWaitActive, Save As
 MouseMove 515, 447
-sleep, 700
+sleep 100
 WinActivate, Save As
 WinWaitActive, Save As
 Click 515, 447
+sleep 300
+WinWait, Save As, , 0
+If (ErrorLevel = 0)
+    {
+    WinActivate, Save As
+    WinWaitActive, Save As
+    Click 398, 48
+    Send, ^v
+    send {enter}
+    MouseMove 515, 447
+    sleep 100
+    WinActivate, Save As
+    WinWaitActive, Save As
+    Click 515, 447
+    }
 sleep, 200
 return
 
