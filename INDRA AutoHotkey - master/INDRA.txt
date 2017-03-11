@@ -104,17 +104,16 @@ DownloadOnePage:
             break
         sleep, 50
     }
-    sleep, 300
     ;get number of record
-    WinActivate PMS INDRA - Internet Explorer
-    WinWaitActive, PMS INDRA - Internet Explorer
+
+    Loop {
     Clipboard =
     MyString =
+    WinActivate PMS INDRA - Internet Explorer
+    WinWaitActive, PMS INDRA - Internet Explorer
     Send ^a
-    sleep 500
     Send ^c
     ClipWait 1
-    sleep 500
     MyString := Clipboard
 
     pos0:= InStr(MyString, "e-File List")
@@ -135,6 +134,9 @@ DownloadOnePage:
     totalRecordsStart:= pos2 + 2
     totalRecordsLength:= pos3 - pos2 -3
     totalRecordsNumber:= SubStr(MyString, totalRecordsStart, totalRecordsLength)
+    if pageRecordValue > 0
+        break
+    }
 
     ;download all if pageRecordValue <31
     if (pageRecordValue <31) {
@@ -318,7 +320,7 @@ Send ^c
 ClipWait 1
 MyFolder1:= Clipboard
 StringTrimRight, MyFolder1, MyFolder1, 2
-MyFolder1:= Trim (MyFolder1)
+MyFolder1= %MyFolder1%
 
 ; MyFolder1, vd: "000 - Documents common to whole plant"
 If (StrLen(MyFolder1) < 2)
@@ -336,8 +338,8 @@ ClipWait 1
 MyFolder3 := Clipboard
 If (StrLen(MyFolder3) < 5)
     break
-MyFolder3 := Trim(SubStr(MyFolder3, 1 , 10))
-MyFolder2 := Trim(SubStr(MyFolder3, 1 , 5))
+MyFolder3 := SubStr(MyFolder3, 1 , 10)
+MyFolder2 := SubStr(MyFolder3, 1 , 5)
 
 ; MyFolder2, vd: "D-000"
 
@@ -413,8 +415,20 @@ Gosub, FinishDownload1
 return
 
 Download1:
-WinWaitActive, Download E-File - Internet Explorer
-
+Loop {
+    WinWaitActive, Download E-File - Internet Explorer, , 15
+    If (ErrorLevel = 0)
+        break
+    WinActivate, This page can’t be displayed - Internet Explorer
+    WinWaitActive, This page can’t be displayed - Internet Explorer, , 0
+    If (ErrorLevel = 0)
+        {
+        Gosub, FinishDownload1ByError
+        WinActivate PMS INDRA - Internet Explorer
+        Click 257, 130
+        Click 317, 175
+        }
+}
 ; wait for loading
 Loop
 {
@@ -458,8 +472,8 @@ Loop
   sleep, 50
 }
 Click 245, 163
-
 Clipboard:= DownloadItem
+
 ; wait for "Save" button is shown
 Loop
 {
@@ -468,37 +482,30 @@ Loop
      break
   sleep, 50
 }
-sleep, 500
+; loop until SaveAs window appear
+Loop {
+WinWaitActive, File Transfer for PMS - Internet Explorer
 Click 320, 610
 Send, {down}
 Send, {enter}
-WinWait, Save As
+WinWait, Save As, , 1
+If (ErrorLevel = 0)
+    break
+}
+; loop until SaveAs window dis-appear
+Loop {
 WinActivate, Save As
-WinWaitActive, Save As
+WinWaitActive, Save As, , 0
+If (ErrorLevel = 0) {
 Click 398, 48
 Send, ^v
 send {enter}
-MouseMove 515, 447
-sleep 100
-WinActivate, Save As
-WinWaitActive, Save As
 Click 515, 447
-sleep 300
+}
 WinWait, Save As, , 0
-If (ErrorLevel = 0)
-    {
-    WinActivate, Save As
-    WinWaitActive, Save As
-    Click 398, 48
-    Send, ^v
-    send {enter}
-    MouseMove 515, 447
-    sleep 100
-    WinActivate, Save As
-    WinWaitActive, Save As
-    Click 515, 447
-    }
-sleep, 200
+If (ErrorLevel = 1)
+    break
+}
 return
 
 FinishDownload2:
@@ -519,6 +526,7 @@ return
 FinishDownload1:
 WinActivate, Download E-File - Internet Explorer
 WinWaitActive, Download E-File - Internet Explorer
+FinishDownload1ByError:
 MouseMove 420, 17
 Loop
 {
