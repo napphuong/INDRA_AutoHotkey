@@ -482,6 +482,7 @@ Loop
      break
   sleep, 50
 }
+sleep 500
 ; loop until SaveAs window appear
 Loop {
 WinWaitActive, File Transfer for PMS - Internet Explorer
