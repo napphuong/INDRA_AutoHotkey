@@ -315,6 +315,18 @@ WinWaitActive, id.xlsx - Excel
 
 Loop {
 Clipboard =
+Send ^c
+ClipWait 1
+If (StrLen(Clipboard) > 3)
+{
+    MyFolder0 = 
+    MyFolder0:= Clipboard
+    StringTrimRight, MyFolder0, MyFolder0, 2
+    MyFolder0= %MyFolder0%
+}
+Send, {Right}
+
+Clipboard =
 MyFolder1 = 
 Send ^c
 ClipWait 1
@@ -329,7 +341,8 @@ If (StrLen(MyFolder1) < 2)
 Loop {
 WinActivate, id.xlsx - Excel
 WinWaitActive, id.xlsx - Excel
-Send, {Down}
+Send, {Right}
+
 Clipboard =
 MyFolder3 = 
 ; MyFolder3, vd: "D-000-1225"
@@ -343,27 +356,29 @@ MyFolder2 := SubStr(MyFolder3, 1 , 5)
 
 ; MyFolder2, vd: "D-000"
 
-IfNotExist, %DownloadFolder%%MyFolder1%\%MyFolder2%\
+IfNotExist, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\
     {
-    FileCreateDir, %DownloadFolder%%MyFolder1%\%MyFolder2%\
+    FileCreateDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\
     Clipboard= %MyFolder2%
-    DownloadItem= %DownloadFolder%%MyFolder1%\%MyFolder2%\
+    DownloadItem= %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\
     Gosub, DownloadTextFile2
     }
 
-IfNotExist, %DownloadFolder%%MyFolder1%\%MyFolder2%\%MyFolder3%\
+IfNotExist, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
     {
-    FileCreateDir, %DownloadFolder%%MyFolder1%\%MyFolder2%\%MyFolder3%\
+    FileCreateDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
     Clipboard= %MyFolder3%
-    DownloadItem= %DownloadFolder%%MyFolder1%\%MyFolder2%\%MyFolder3%\
+    DownloadItem= %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
     Gosub, SearchAndDownloadAll2
     }
 }
 WinActivate, id.xlsx - Excel
 WinWaitActive, id.xlsx - Excel
-Send, {Up}
-Send, ^{Up}
-Send, {Right}
+Send, {Left}
+Send, ^{Left}
+Send, {Down}
+Send, {Left}
+
 }
 return
 
