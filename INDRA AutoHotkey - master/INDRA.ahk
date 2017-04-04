@@ -3,9 +3,10 @@
 ;===================================
 Gui,+AlwaysOnTop
 Gui, Add, CheckBox, gCheck vMyCheckBox, Stop when this item finished (F1)
-Gui, Show, w200 h60, INDRA
+Gui, Show, w200 h80, INDRA
 MyCheckBox:= 0
 Gui, Add, Button, Default gStartDownload, Start Download
+Gui, Add, Button, Default gContinueDownload, Continue Download
 return
 
 GuiEscape: 
@@ -29,7 +30,7 @@ return
 Pause::Pause
 
 ;===================================
-;CORE FEATURE
+;CORE FEATURES
 ;===================================
 
 ^7::
@@ -75,7 +76,98 @@ sleep 500
 return
 
 StartDownload:
-InputBox, DownloadFolder, Items, Please enter download folder name , , , , , , , , D:\Downloads\INDRA\
+    Gosub, CheckInitialCondition
+    InputBox, DownloadFolder, Download Folder, Please enter download folder name , , , , , , , , F:\INDRA\
+
+NextItem:
+    WinActivate, id.xlsx - Excel
+    WinWaitActive, id.xlsx - Excel
+    Send, ^{Left}
+    Loop {
+        Clipboard =
+        Send ^c
+        ClipWait 1
+        If (StrLen(Clipboard) > 3)
+        {
+            MyFolder0 = 
+            MyFolder0:= Clipboard
+            StringTrimRight, MyFolder0, MyFolder0, 2
+            MyFolder0= %MyFolder0%
+        }
+        Send, {Right}
+
+        Clipboard =
+        MyFolder1 = 
+        Send ^c
+        ClipWait 1
+        MyFolder1:= Clipboard
+        StringTrimRight, MyFolder1, MyFolder1, 2
+        MyFolder1= %MyFolder1%
+
+        ; MyFolder1, vd: "000 - Documents common to whole plant"
+        If (StrLen(MyFolder1) < 3)
+            break
+
+        Loop {
+            WinActivate, id.xlsx - Excel
+            WinWaitActive, id.xlsx - Excel
+            Send, {Right}
+
+            Clipboard =
+            MyFolder3 = 
+            ; MyFolder3, vd: "D-000-1225", "VP215A-501"
+            Send ^c
+            ClipWait 1
+            MyFolder3 := Clipboard
+            If (StrLen(MyFolder3) < 5)
+                break
+            MyFolder3 := SubStr(MyFolder3, 1 , 10)
+
+            MyFolder2 := SubStr(MyFolder3, 1 , InStr(MyFolder3, "-", , 4) - 1)
+            ; MyFolder2, vd: "D-000", "VP215A"
+
+            IfNotExist, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\
+            {
+                FileCreateDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\
+                Clipboard= %MyFolder2%
+                DownloadItem= %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\
+                Gosub, DownloadTextFile2
+            }
+
+            IfNotExist, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
+            {
+                FileCreateDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
+                Clipboard= %MyFolder3%
+                DownloadItem= %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
+                Gosub, SearchAndDownloadAll2
+            }
+            If MyCheckBox
+                return
+        }
+        WinActivate, id.xlsx - Excel
+        WinWaitActive, id.xlsx - Excel
+        Send, {Left}
+        Send, ^{Left}
+        Send, {Down}
+        Send, {Left}
+    }
+return
+
+ContinueDownload:
+    Gosub, CheckInitialCondition
+    If !MyCheckBox
+        InputBox, DownloadFolder, Download Folder, Please enter download folder name , , , , , , , , F:\INDRA\
+    InputBox, DownloadItem, Destination, Please enter download folder name , , , , , , , , F:\INDRA\
+    Gosub, DownloadWithOutSearching
+    If !MyCheckBox
+        Gosub, NextItem
+return
+
+;===================================
+;SUB ROUTINES
+;===================================
+
+CheckInitialCondition:
 If ErrorLevel
     return
 Loop {
@@ -103,80 +195,7 @@ else
         return
     }
 }
-Send, ^{Left}
-Loop {
-Clipboard =
-Send ^c
-ClipWait 1
-If (StrLen(Clipboard) > 3)
-{
-    MyFolder0 = 
-    MyFolder0:= Clipboard
-    StringTrimRight, MyFolder0, MyFolder0, 2
-    MyFolder0= %MyFolder0%
-}
-Send, {Right}
-
-Clipboard =
-MyFolder1 = 
-Send ^c
-ClipWait 1
-MyFolder1:= Clipboard
-StringTrimRight, MyFolder1, MyFolder1, 2
-MyFolder1= %MyFolder1%
-
-; MyFolder1, vd: "000 - Documents common to whole plant"
-If (StrLen(MyFolder1) < 3)
-    break
-
-Loop {
-WinActivate, id.xlsx - Excel
-WinWaitActive, id.xlsx - Excel
-Send, {Right}
-
-Clipboard =
-MyFolder3 = 
-; MyFolder3, vd: "D-000-1225", "VP215A-501"
-Send ^c
-ClipWait 1
-MyFolder3 := Clipboard
-If (StrLen(MyFolder3) < 5)
-    break
-MyFolder3 := SubStr(MyFolder3, 1 , 10)
-MyFolder2 := SubStr(MyFolder3, 1 , InStr(MyFolder3, "-", , 4) - 1)
-
-; MyFolder2, vd: "D-000", "VP215A"
-
-IfNotExist, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\
-    {
-    FileCreateDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\
-    Clipboard= %MyFolder2%
-    DownloadItem= %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\
-    Gosub, DownloadTextFile2
-    }
-
-IfNotExist, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
-    {
-    FileCreateDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
-    Clipboard= %MyFolder3%
-    DownloadItem= %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
-    Gosub, SearchAndDownloadAll2
-    }
-If MyCheckBox
-    return
-}
-WinActivate, id.xlsx - Excel
-WinWaitActive, id.xlsx - Excel
-Send, {Left}
-Send, ^{Left}
-Send, {Down}
-Send, {Left}
-}
 return
-
-;===================================
-;SUB
-;===================================
 
 SearchAndDownloadAll2:
 Gosub, DownloadTextFile2
@@ -184,12 +203,11 @@ Gosub, DownloadTextFile2
 WinActivate PMS INDRA - Internet Explorer
 WinWaitActive, PMS INDRA - Internet Explorer
 Click 271, 201
-
-DownloadFromHereToTheEnd:
+DownloadWithOutSearching:
 Loop
 {
 Gosub, DownloadOnePage
-; exit loop and minimize
+    ; exit loop and minimize
     if (toValue = totalRecordsNumber){
         Gosub, FinishDownload0
         return
