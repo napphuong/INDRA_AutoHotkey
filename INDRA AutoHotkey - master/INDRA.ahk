@@ -3,10 +3,17 @@
 ;===================================
 Gui,+AlwaysOnTop
 Gui, Add, CheckBox, gCheck vMyCheckBox, Stop when this item finished (F1)
-Gui, Show, w200 h80, INDRA
+Gui, Show, w235 h130, INDRA
 MyCheckBox:= 0
-Gui, Add, Button, Default gStartDownload, Start Download
-Gui, Add, Button, Default gContinueDownload, Continue Download
+Gui, Add, Button, x10 y25 w100 Default gStartDownload, Start Download
+Gui, Add, Button, x115 y25 w110 Default gContinueDownload, Continue Download
+Gui, Add, Edit, x10 y50 w100 ReadOnly, Download Folder
+Gui, Add, Edit, x115 y50 w110 vDownloadFolder, F:\INDRA\
+Gui, Add, Edit, x10 y75 w100 ReadOnly, Current Item
+Gui, Add, Edit, x115 y75 w110 vDownloadItem
+; Add delay time in each download to prevent number of download reach 12 (maximum value)
+Gui, Add, Edit, x10 y100 w100 ReadOnly, Delay Time (s)
+Gui, Add, Edit, x115 y100 w110 vDelayTime
 return
 
 GuiEscape: 
@@ -77,9 +84,10 @@ return
 
 StartDownload:
     Gosub, CheckInitialCondition
-    InputBox, DownloadFolder, Download Folder, Please enter download folder name , , , , , , , , F:\INDRA\
 
 NextItem:
+    GuiControlGet, DownloadFolder
+
     WinActivate, id.xlsx - Excel
     WinWaitActive, id.xlsx - Excel
     Send, ^{Left}
@@ -155,9 +163,15 @@ return
 
 ContinueDownload:
     Gosub, CheckInitialCondition
-    If !MyCheckBox
-        InputBox, DownloadFolder, Download Folder, Please enter download folder name , , , , , , , , F:\INDRA\
-    InputBox, DownloadItem, Destination, Please enter download folder name , , , , , , , , F:\INDRA\
+    Loop {
+        GuiControlGet, DownloadItem
+        If (DownloadItem = "") {
+            Msgbox, Please give path to Current Download Item
+            return
+        }Else{
+            break
+        }
+    }
     Gosub, DownloadWithOutSearching
     If !MyCheckBox
         Gosub, NextItem
@@ -195,6 +209,11 @@ else
         return
     }
 }
+GuiControlGet, DelayTime
+If DelayTime is integer
+    DelayTime := DelayTime * 1000
+Else
+    DelayTime := 0
 return
 
 SearchAndDownloadAll2:
@@ -556,6 +575,7 @@ Loop
 }
 Click 420, 17
 sleep, 200
+sleep, DelayTime
 return
 
 FinishDownload0:
