@@ -3,22 +3,27 @@
 ;===================================
 Gui,+AlwaysOnTop
 Gui, Add, CheckBox, gCheck vMyCheckBox, Stop when this item finished (F1)
-Gui, Show, w235 h130, INDRA
 MyCheckBox:= 0
 Gui, Add, Button, x10 y25 w100 Default gStartDownload, Start Download
 Gui, Add, Button, x115 y25 w110 Default gContinueDownload, Continue Download
 Gui, Add, Edit, x10 y50 w100 ReadOnly, Download Folder
 Gui, Add, Edit, x115 y50 w110 vDownloadFolder, F:\INDRA\
-Gui, Add, Edit, x10 y75 w100 ReadOnly, Current Item
-Gui, Add, Edit, x115 y75 w110 vDownloadItem
+
 ; Add delay time in each download to prevent number of download reach 12 (maximum value)
-Gui, Add, Edit, x10 y100 w100 ReadOnly, Delay Time (s)
-Gui, Add, Edit, x115 y100 w110 vDelayTime
+Gui, Add, Edit, x10 y75 w100 ReadOnly, Delay Time (s)
+Gui, Add, Edit, x115 y75 w110 vDelayTime, 45
+Gui, Add, CheckBox, x10 y105 w125 gUpdateMode vUpdateMode, Update Mode
+UpdateMode:= 0
+Gui, Show, w235 h130, INDRA
 return
 
 GuiEscape: 
 GuiClose: 
 ExitApp
+return
+
+UpdateMode:
+UpdateMode:= !UpdateMode
 return
 
 Check:
@@ -141,14 +146,25 @@ NextItem:
                 DownloadItem= %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\
                 Gosub, DownloadTextFile2
             }
-
+            
+  
             IfNotExist, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
             {
                 FileCreateDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
                 Clipboard= %MyFolder3%
                 DownloadItem= %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
+                FileAppend, %A_YYYY% %A_MMM% %A_DD% %MyFolder3%`n, %DownloadFolder%Downloaded.txt
                 Gosub, SearchAndDownloadAll2
+            } else if (UpdateMode = 1) {
+                FileMoveDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%OLD\, R
+                FileCreateDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
+                Clipboard= %MyFolder3%
+                DownloadItem= %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
+                FileAppend, %A_YYYY% %A_MMM% %A_DD% %MyFolder3%`n, %DownloadFolder%Updated.txt
+                Gosub, SearchAndDownloadAll2
+                FileRemoveDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%OLD\, 1
             }
+            
             If MyCheckBox
                 return
         }
@@ -210,10 +226,7 @@ else
     }
 }
 GuiControlGet, DelayTime
-If DelayTime is integer
-    DelayTime := DelayTime * 1000
-Else
-    DelayTime := 0
+DelayTime := DelayTime * 1000
 return
 
 SearchAndDownloadAll2:
@@ -470,13 +483,23 @@ Click 177, 408
 Download2:
 Loop
 {
+WinActivate, File Transfer for PMS - Internet Explorer
 WinWaitActive, File Transfer for PMS - Internet Explorer, , 0
 If (ErrorLevel = 0)
     break
+WinActivate, Message from webpage
 WinWaitActive, Message from webpage, , 0
 If (ErrorLevel = 0)
     {
-    click 319, 139
+    Loop
+        {
+        click 319, 139
+        sleep, 50
+        WinActivate, Message from webpage
+        WinWaitActive, Message from webpage, , 0
+        if ErrorLevel
+           break
+        }
     break
     }
 }
