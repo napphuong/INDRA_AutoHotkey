@@ -8,13 +8,14 @@ Gui, Add, Button, x10 y25 w100 Default gStartDownload, Start Download
 Gui, Add, Button, x115 y25 w110 Default gContinueDownload, Continue Download
 Gui, Add, Edit, x10 y50 w100 ReadOnly, Download Folder
 Gui, Add, Edit, x115 y50 w110 vDownloadFolder, F:\INDRA\
+Gui, Add, Edit, x10 y75 w100 ReadOnly, Download Item
+Gui, Add, Edit, x115 y75 w110 vDownloadItem,
+Gui, Add, Edit, x10 y100 w100 ReadOnly, Delay Timer
+Gui, Add, Edit, x115 y100 w110 vDelayTime,
 
-; Add delay time in each download to prevent number of download reach 12 (maximum value)
-Gui, Add, Edit, x10 y75 w100 ReadOnly, Delay Time (s)
-Gui, Add, Edit, x115 y75 w110 vDelayTime, 45
-Gui, Add, CheckBox, x10 y105 w125 gUpdateMode vUpdateMode, Update Mode
+Gui, Add, CheckBox, x10 y125 w125 gUpdateMode vUpdateMode, Update Mode
 UpdateMode:= 0
-Gui, Show, w235 h130, INDRA
+Gui, Show, w235 h155, INDRA
 return
 
 GuiEscape: 
@@ -160,7 +161,8 @@ NextItem:
                 FileCreateDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
                 Clipboard= %MyFolder3%
                 DownloadItem= %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
-                FileAppend, %A_YYYY% %A_MMM% %A_DD% %MyFolder3%`n, %DownloadFolder%Updated.txt
+                FileAppend, %A_YYYY% %A_MMM% %A_DD% %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%`n, %DownloadFolder%Updated.txt
+                GuiControl,,DownloadItem,%DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%
                 Gosub, SearchAndDownloadAll2
                 FileRemoveDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%OLD\, 1
             }
@@ -225,8 +227,12 @@ else
         return
     }
 }
-GuiControlGet, DelayTime
-DelayTime := DelayTime * 1000
+
+IfWinExist, Download E-File - Internet Explorer
+  WinClose , Download E-File - Internet Explorer
+IfWinExist, File Transfer for PMS - Internet Explorer
+  WinClose , File Transfer for PMS - Internet Explorer
+
 return
 
 SearchAndDownloadAll2:
@@ -361,7 +367,7 @@ DownloadOnePage:
     toLength:= pos2 - pos1 - 5
     toValue:= SubStr(MyString, toStart, toLength)
 
-    pageRecordValue:= toValue - fromValue + 1
+    pageRecordValue:= (toValue - fromValue + 1)/2
 
     totalRecordsStart:= pos2 + 2
     totalRecordsLength:= pos3 - pos2 -3
@@ -596,17 +602,51 @@ Loop
      break
   sleep, 50
 }
+
 Click 420, 17
 sleep, 200
-sleep, DelayTime
+
+Loop
+{
+  WinActivate, PMS INDRA - Internet Explorer
+  WinWaitActive, PMS INDRA - Internet Explorer
+
+  send, ^j
+  sleep, 500
+
+  WinGetTitle, DownloadWindowTitle , A
+
+  If InStr(DownloadWindowTitle, "View Downloads") 
+  {
+    DelayTime:= 0
+    break
+  }
+  If InStr(DownloadWindowTitle, "downloaded")
+  {
+    DelayTime:= 0
+    break
+  }
+  If InStr(DownloadWindowTitle, "downloads in progress")
+  {
+    DelayTime:= 10 * SubStr(DownloadWindowTitle, 1, InStr(DownloadWindowTitle, "downloads in progress") - 2)
+    break
+  }
+}
+
+;View Downloads - Internet Explorer
+;15.5 MB of 20170716004252_0000528911.zip downloaded
+;3 downloads in progress
+
+Loop
+{
+  GuiControl,,DelayTime,%DelayTime%
+  Sleep, 1000
+  DelayTime:= DelayTime - 1
+  If (DelayTime < 0)
+    break
+}
 return
 
 FinishDownload0:
-WinActivate, PMS INDRA - Internet Explorer
-WinWaitActive, PMS INDRA - Internet Explorer
-Send, {Alt down}
-Send, {space}
-Send, {Alt up}
-Sleep 50
-Send, n	
+WinMinimize , PMS INDRA - Internet Explorer
 return
