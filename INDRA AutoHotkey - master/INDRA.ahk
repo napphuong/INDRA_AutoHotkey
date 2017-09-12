@@ -2,8 +2,10 @@
 ;GUI
 ;===================================
 Gui,+AlwaysOnTop
-Gui, Add, CheckBox, gCheck vMyCheckBox, Stop when this item finished (F1)
+Gui, Add, CheckBox, x10 y5 w100 gCheck vMyCheckBox, Wrap up! (F1)
 MyCheckBox:= 0
+Gui, Add, CheckBox, x115 y5 w110 gUpdateMode vUpdateMode, Update Mode
+UpdateMode:= 0
 Gui, Add, Button, x10 y25 w100 Default gStartDownload, Start Download
 Gui, Add, Button, x115 y25 w110 Default gContinueDownload, Continue Download
 Gui, Add, Edit, x10 y50 w100 ReadOnly, Download Folder
@@ -12,10 +14,7 @@ Gui, Add, Edit, x10 y75 w100 ReadOnly, Download Item
 Gui, Add, Edit, x115 y75 w110 vDownloadItem,
 Gui, Add, Edit, x10 y100 w100 ReadOnly, Delay Timer
 Gui, Add, Edit, x115 y100 w110 vDelayTime,
-
-Gui, Add, CheckBox, x10 y125 w125 gUpdateMode vUpdateMode, Update Mode
-UpdateMode:= 0
-Gui, Show, w235 h155, INDRA
+Gui, Show, w235 h130, INDRA
 return
 
 GuiEscape: 
@@ -180,6 +179,7 @@ NextItem:
 return
 
 ContinueDownload:
+    ; seach the item, navigate to the page you want to continue.
     Gosub, CheckInitialCondition
     Loop {
         GuiControlGet, DownloadItem
@@ -306,12 +306,21 @@ Loop, 3
 }	
 Send, ^v
 Send, `%
-Loop, 10
+
+Loop, 17
+{
+    Send, {Tab}
+}	
+Send, {Down}
+Send, {Down}
+
+Loop, 27
 {
     Send, {Shift down}{Tab}{Shift up}
 }
 Send, {Right}
 Send, {Right}
+
 Loop, 2
 {
     Send, {Shift down}{Tab}{Shift up}
@@ -615,20 +624,12 @@ Loop
   sleep, 500
 
   WinGetTitle, DownloadWindowTitle , A
-
-  If InStr(DownloadWindowTitle, "View Downloads") 
-  {
-    DelayTime:= 0
-    break
-  }
-  If InStr(DownloadWindowTitle, "downloaded")
-  {
-    DelayTime:= 0
-    break
-  }
+  DelayTime:=0
   If InStr(DownloadWindowTitle, "downloads in progress")
   {
-    DelayTime:= 10 * SubStr(DownloadWindowTitle, 1, InStr(DownloadWindowTitle, "downloads in progress") - 2)
+    NumberOfDownload:= SubStr(DownloadWindowTitle, 1, InStr(DownloadWindowTitle, "downloads in progress") - 2)
+    If (NumberOfDownload > 4)
+      DelayTime:= 20 * NumberOfDownload - 50
     break
   }
 }
