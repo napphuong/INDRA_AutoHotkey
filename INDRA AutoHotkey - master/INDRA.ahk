@@ -50,14 +50,16 @@ StartDownload:
 
 NextItem:
     GuiControlGet, DownloadFolder
+    
+    ; check every 5 minutes if idle time is too long reset all.
+    SetTimer, trapper, 300000
 
     Loop
     {
       WinActivate, id.xlsx - Excel
-      WinWaitActive, id.xlsx - Excel, , 0
+      WinWaitActive, id.xlsx - Excel, , 5
       if !ErrorLevel
         break
-      sleep, 50
     }
     Send, ^{Left}
     Loop {
@@ -82,18 +84,19 @@ NextItem:
         MyFolder1= %MyFolder1%
 
         ; MyFolder1, vd: "000 - Documents common to whole plant"
-        If (StrLen(MyFolder1) < 3)
+        If (StrLen(MyFolder1) < 2)
             break
 
-        Loop {
+        Loop 
+        {
             Loop
             {
                 WinActivate, id.xlsx - Excel
-                WinWaitActive, id.xlsx - Excel, , 0
+                WinWaitActive, id.xlsx - Excel, , 5
                 if !ErrorLevel
                   break
-                sleep, 50
             }
+
             Send, {Right}
 
             Clipboard =
@@ -111,47 +114,53 @@ NextItem:
 
             IfNotExist, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\
             {
-                FileCreateDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\
-                Clipboard= %MyFolder2%
                 DownloadItem= %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\
-                Gosub, DownloadTextFile2
+                FileCreateDir, %DownloadItem%
+                Clipboard= %MyFolder2%
+                GuiControl,,DownloadItem, %DownloadItem%
+                Gosub, DownloadTextFile
             }
             
             IfNotExist, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
             {
-                FileCreateDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
-                Clipboard= %MyFolder3%
                 DownloadItem= %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
-                FileAppend, %A_YYYY% %A_MMM% %A_DD% %A_Hour%:%A_Min%:%A_Sec% %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%`n, %DownloadFolder%Downloaded.txt
-                GuiControl,,DownloadItem,%DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%
+                FileCreateDir, %DownloadItem%
+                Clipboard= %MyFolder3%
+
+                FileAppend, %A_YYYY% %A_MMM% %A_DD% %A_Hour%:%A_Min%:%A_Sec% %DownloadItem%`n, %DownloadFolder%Downloaded.txt
+                GuiControl,,DownloadItem, %DownloadItem%
                 Gosub, SearchAndDownloadAll2
             } else if (UpdateMode = 1) {
-                FileMoveDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%OLD\, R
-                FileCreateDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
-                Clipboard= %MyFolder3%
                 DownloadItem= %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%\
-                FileAppend, %A_YYYY% %A_MMM% %A_DD% %A_Hour%:%A_Min%:%A_Sec% %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%`n, %DownloadFolder%Updated.txt
-                GuiControl,,DownloadItem,%DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%
+                FileMoveDir, %DownloadItem%, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%OLD\, R
+                FileCreateDir, %DownloadItem%
+                Clipboard= %MyFolder3%
+                FileAppend, %A_YYYY% %A_MMM% %A_DD% %A_Hour%:%A_Min%:%A_Sec% %DownloadItem%`n, %DownloadFolder%Updated.txt
+                GuiControl,,DownloadItem,%DownloadItem%
                 Gosub, SearchAndDownloadAll2
                 FileRemoveDir, %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%OLD\, 1
             }
             
             If MyCheckBox
+                {
+                SetTimer, trapper, Off
                 return
+                }
         }
+
         Loop
         {
           WinActivate, id.xlsx - Excel
-          WinWaitActive, id.xlsx - Excel, , 0
+          WinWaitActive, id.xlsx - Excel, , 5
           if !ErrorLevel
             break
-          sleep, 50
         }
         Send, {Left}
         Send, ^{Left}
         Send, {Down}
         Send, {Left}
     }
+SetTimer, trapper, Off
 return
 
 ContinueDownload:
@@ -163,7 +172,7 @@ ContinueDownload:
             Msgbox, Please give path to Current Download Item
             return
         }Else{
-            break
+            return
         }
     }
     Gosub, DownloadWithOutSearching
@@ -175,9 +184,114 @@ return
 ;SUB ROUTINES
 ;===================================
 
+
+
+
+
+;Load INDRA
+;==========
+LoadINDRA:
+Run, iexplore.exe https://wpms.jgc.com
+
+Loop {
+WinActivate, Login for PMS (Specifying User ID & Password) - Internet Explorer
+WinWaitActive, Login for PMS (Specifying User ID & Password) - Internet Explorer, , 10
+If !ErrorLevel {
+    send KX493
+    send {tab}
+    send Maivu124
+    send, {enter}
+    send, {enter}
+    break
+    }
+}
+
+Loop {
+WinActivate, Specifying Project ID/Group ID & Printer ID - Internet Explorer
+WinWaitActive, Specifying Project ID/Group ID & Printer ID - Internet Explorer, , 10
+If !ErrorLevel
+  {
+  loop, 5 
+    {
+    send, {enter}
+    }
+  }
+  break
+}
+
+Loop {
+WinActivate, PMS Integrated Menu - Internet Explorer
+WinWaitActive, PMS Integrated Menu - Internet Explorer, , 5
+If !ErrorLevel
+    {
+    ;Wait for loading
+    Loop
+      {
+      PixelSearch, Px, Py, 29,209, 38,214, 0xC0C0C0, 3, RGB
+      if !ErrorLevel
+        {
+        click 17, 209
+        break
+        }
+      sleep, 50
+      }
+
+    Loop
+      {
+      PixelSearch, Px, Py, 43,226,55,238, 0x008080, 3, RGB
+      if !ErrorLevel
+        {
+        click 130, 230
+        break
+        }
+      sleep, 50
+      }
+    break
+    }
+}
+
+
+Loop {
+WinActivate, PMS INDRA - Internet Explorer
+WinWaitActive, PMS INDRA - Internet Explorer, , 5
+If !ErrorLevel
+    {
+    ;Wait for loading
+    Loop
+      {
+      PixelSearch, Px, Py, 39,165,49,169, 0xC0C0C0, 3, RGB
+      if !ErrorLevel
+        {
+        click 26, 167
+        break
+        }
+      sleep, 50
+      }
+
+    Loop
+      {
+      PixelSearch, Px, Py, 54,208,62,218, 0xC0C0C0, 3, RGB
+      if !ErrorLevel
+        {
+        click 156, 212 
+        break
+        }
+      sleep, 50
+      }
+    break
+    }
+}
+
+return
+
+
+
+
+
+;Check Inital Condition
+;======================
 CheckInitialCondition:
-If ErrorLevel
-    return
+; INDRA is not loaded.
 Loop {
 WinActivate PMS INDRA - Internet Explorer
 WinWaitActive, PMS INDRA - Internet Explorer, , 0
@@ -185,15 +299,16 @@ If !ErrorLevel
     break
 else
     {
-    MsgBox, 1, INDRA, Please open INDRA in IE.
-    IfMsgBox Cancel
-        return
+    Gosub, CloseAllINDRAWindows    
+    sleep, 500
+    Gosub, LoadINDRA
     }
 }
 
+;id.xlsx is not opened.
 Loop {
 WinActivate, id.xlsx - Excel
-WinWaitActive, id.xlsx - Excel, , 0
+WinWaitActive, id.xlsx - Excel, , 1
 If !ErrorLevel
     break
 else
@@ -204,65 +319,25 @@ else
     }
 }
 
-IfWinExist, Download E-File - Internet Explorer
-  WinClose , Download E-File - Internet Explorer
-IfWinExist, File Transfer for PMS - Internet Explorer
-  WinClose , File Transfer for PMS - Internet Explorer
+; close all sub windows if any
+Gosub, CloseSubWindows
 
 return
 
-SearchAndDownloadAll2:
-Gosub, DownloadTextFile2
-;search file
 
-Loop
-{
-WinActivate PMS INDRA - Internet Explorer
-WinWaitActive, PMS INDRA - Internet Explorer, , 0
-if !ErrorLevel
-  break
-sleep, 50
-}
 
-Click 271, 201
-DownloadWithOutSearching:
-Loop
-{
-Gosub, DownloadOnePage
-    ; exit loop and minimize
-    if (toValue = totalRecordsNumber){
-        Gosub, FinishDownload0
-        return
-    }
-    sleep, 50
-    Loop
-    {
-    WinActivate PMS INDRA - Internet Explorer
-    WinWaitActive, PMS INDRA - Internet Explorer, , 0
-    if !ErrorLevel
-      break
-    sleep, 50
-    }
 
-    Click 301, 219
-    ;Wait for IE window become blank.
-    Loop
-    {
-    PixelSearch, Px, Py, 398, 125, 419, 137, 0xFFFFFF, 3, RGB
-    if !ErrorLevel
-        break
-    sleep, 50
-    }
-}
-return
+
+
+; Input data to INDRA
+;====================
 
 InputData2:
 ;switch to INDRA
-
 Loop
 {
 WinActivate PMS INDRA - Internet Explorer
-WinWaitActive, PMS INDRA - Internet Explorer, , 0
+WinWaitActive, PMS INDRA - Internet Explorer, , 5
 if !ErrorLevel {
     PixelSearch, Px, Py, 943, 64, 995, 89, 0xFF0000, 3, RGB
     if !ErrorLevel {
@@ -271,46 +346,40 @@ if !ErrorLevel {
         break
         }
     }
-sleep, 50
 }
-
 
 ;Wait for IE window become blank.
 Loop
 {
 WinActivate PMS INDRA - Internet Explorer
-WinWaitActive, PMS INDRA - Internet Explorer, , 0
+WinWaitActive, PMS INDRA - Internet Explorer, , 5
 if !ErrorLevel {
     PixelSearch, Px, Py, 398, 125, 419, 137, 0xFFFFFF, 3, RGB
     if !ErrorLevel
         break
     }
-sleep, 50
 }
 
+;Wait for IE window loaded.
 Loop
 {
 WinActivate PMS INDRA - Internet Explorer
-WinWaitActive, PMS INDRA - Internet Explorer, , 0
+WinWaitActive, PMS INDRA - Internet Explorer, , 5
 if !ErrorLevel {
-    ;Wait for IE window loaded.
     PixelSearch, Px, Py, 361, 495, 395, 507, 0x666666, 3, RGB
     if !ErrorLevel
         break
     }
-sleep, 50
-}
-
-Loop
-{
-WinActivate PMS INDRA - Internet Explorer
-WinWaitActive, PMS INDRA - Internet Explorer, , 0
-if !ErrorLevel
-  break
-sleep, 50
 }
 
 ;input search value and option
+Loop
+{
+WinActivate PMS INDRA - Internet Explorer
+WinWaitActive, PMS INDRA - Internet Explorer, , 5
+if !ErrorLevel
+  break
+}
 Loop, 3
 {
     Send, {Tab}
@@ -342,15 +411,20 @@ Send, {Right}
 Send, {Shift down}{Tab}{Shift up}
 return
 
-DownloadTextFile2:
-;skip prepare data
-Gosub, InputData2
-;download text file
 
+
+
+
+; Download Text File
+;===================
+DownloadTextFile:
+Gosub, InputData2
+
+;download text file
 Loop
 {
 WinActivate PMS INDRA - Internet Explorer
-WinWaitActive, PMS INDRA - Internet Explorer, , 0
+WinWaitActive, PMS INDRA - Internet Explorer, , 5
 if !ErrorLevel {
   Click 358, 199
   break
@@ -359,10 +433,66 @@ sleep, 50
 }
 
 Gosub, Download2
-Gosub, FinishDownload2
+Gosub, FinishDownload
 sleep 100
 return
 
+
+
+
+
+;Search and download all items (include text file)
+;=================================================
+SearchAndDownloadAll2:
+Gosub, DownloadTextFile
+;search file
+
+Loop
+{
+WinActivate PMS INDRA - Internet Explorer
+WinWaitActive, PMS INDRA - Internet Explorer, , 5
+if !ErrorLevel
+  break
+sleep, 50
+}
+
+Click 271, 201
+
+DownloadWithOutSearching:
+Loop
+{
+Gosub, DownloadOnePage
+    ; exit loop and minimize
+    if (toValue = totalRecordsNumber){
+        WinMinimize , PMS INDRA - Internet Explorer
+        return
+    }
+    Loop
+    {
+    WinActivate PMS INDRA - Internet Explorer
+    WinWaitActive, PMS INDRA - Internet Explorer, , 5
+    if !ErrorLevel
+      Click 301, 219
+      break
+    }
+
+    ;Wait for IE window become blank.
+    Loop
+    {
+    PixelSearch, Px, Py, 398, 125, 419, 137, 0xFFFFFF, 3, RGB
+    if !ErrorLevel
+        break
+    sleep, 50
+    }
+}
+return
+
+
+
+
+
+;Download 1 Page
+;===============
 DownloadOnePage:
     ; check if IE is loaded.
     Loop
@@ -370,7 +500,6 @@ DownloadOnePage:
         PixelSearch, Px, Py, 811, 280, 870, 299, 0x666666 , 5, RGB
         if !ErrorLevel
             break
-        sleep, 50
     }
     ;get number of record
 
@@ -380,10 +509,9 @@ DownloadOnePage:
     Loop
     {
     WinActivate PMS INDRA - Internet Explorer
-    WinWaitActive, PMS INDRA - Internet Explorer, , 0
+    WinWaitActive, PMS INDRA - Internet Explorer, , 5
     if !ErrorLevel
       break
-    sleep, 50
     }
     Send ^a
     Send ^c
@@ -439,14 +567,42 @@ DownloadOnePage:
     }
 return
 
+
+
+
+
+;Select All and download
+;=======================
+DownThemAll:
+Loop
+{
+WinActivate PMS INDRA - Internet Explorer
+WinWaitActive, PMS INDRA - Internet Explorer, , 5
+if !ErrorLevel
+  break
+}
+Click 257, 130
+Click 314, 239
+Click 257, 130
+Click 317, 175
+Gosub, Download1
+sleep 100
+Gosub, FinishDownload
+return
+
+
+
+
+
+;Select and download some items in 1 Page
+;========================================
 DownloadItems:
 Loop
 {
 WinActivate PMS INDRA - Internet Explorer
-WinWaitActive, PMS INDRA - Internet Explorer, , 0
+WinWaitActive, PMS INDRA - Internet Explorer, , 5
 if !ErrorLevel
   break
-sleep, 50
 }
 Click 753, 418
 Loop, 10 {
@@ -477,44 +633,23 @@ Click 257, 130
 Click 317, 175
 Gosub, Download1
 sleep 100
-Gosub, FinishDownload2
-Gosub, FinishDownload1
+Gosub, FinishDownload
 return
 
-DownThemAll:
-Loop
-{
-WinActivate PMS INDRA - Internet Explorer
-WinWaitActive, PMS INDRA - Internet Explorer, , 0
-if !ErrorLevel
-  break
-sleep, 50
-}
-Click 257, 130
-Click 314, 239
-Click 257, 130
-Click 317, 175
-Gosub, Download1
-sleep 100
-Gosub, FinishDownload2
-Gosub, FinishDownload1
-return
 
+
+
+
+;Download after selecting and click download
+;===========================================
 Download1:
 Loop {
-    WinWaitActive, Download E-File - Internet Explorer, , 15
+    WinWaitActive, Download E-File - Internet Explorer, , 5
     If (ErrorLevel = 0)
         break
-    WinActivate, This page can’t be displayed - Internet Explorer
-    WinWaitActive, This page can’t be displayed - Internet Explorer, , 0
-    If (ErrorLevel = 0)
-        {
-        Gosub, FinishDownload1
-        WinActivate PMS INDRA - Internet Explorer
-        Click 257, 130
-        Click 317, 175
-        }
+    sleep, 50
 }
+
 ; wait for loading
 Loop
 {
@@ -542,11 +677,13 @@ Download2:
 Loop
 {
 WinActivate, File Transfer for PMS - Internet Explorer
-WinWaitActive, File Transfer for PMS - Internet Explorer, , 0
+WinWaitActive, File Transfer for PMS - Internet Explorer, , 2
 If (ErrorLevel = 0)
     break
+
+; more than 3000 items
 WinActivate, Message from webpage
-WinWaitActive, Message from webpage, , 0
+WinWaitActive, Message from webpage, , 2
 If (ErrorLevel = 0)
     {
     Loop
@@ -554,13 +691,14 @@ If (ErrorLevel = 0)
         click 319, 139
         sleep, 50
         WinActivate, Message from webpage
-        WinWaitActive, Message from webpage, , 0
+        WinWaitActive, Message from webpage, , 2
         if ErrorLevel
            break
         }
     break
     }
 }
+
 ; wait for loading
 Loop
 {
@@ -594,55 +732,141 @@ Loop
   sleep, 50
 }
 sleep 500
+
 ; loop until SaveAs window appear
+ClickSaveAs:
 Loop {
   Loop {
   WinActivate, File Transfer for PMS - Internet Explorer
-  WinWaitActive, File Transfer for PMS - Internet Explorer, , 0
+  WinWaitActive, File Transfer for PMS - Internet Explorer, , 5
   Click 320, 610
   Sleep 100
-  WinWaitActive, File Transfer for PMS - Internet Explorer, , 0
+  WinWaitActive, File Transfer for PMS - Internet Explorer, , 5
   if !ErrorLevel
      break
   }  
   Send, {down}
   Send, {enter}
-  WinWait, Save As, , 1
+  WinWait, Save As, , 5
   If (ErrorLevel = 0)
     break
 }
-; loop until SaveAs window dis-appear
+
+; loop until SaveAs window dis-appeared
 Loop {
 WinActivate, Save As
-WinWaitActive, Save As, , 0
+WinWaitActive, Save As, , 5
 If (ErrorLevel = 0) {
-Click 398, 48
-Send, ^v
-send {enter}
-Click 515, 447
-}
+  Click 398, 48
+  Send, ^v
+  send {enter}
+  Click 515, 447
+  WinWait, Confirm Save As, , 0
+  If !ErrorLevel {
+      WinClose , Confirm Save As
+      WinClose , Save As
+      FileAppend, Confirm Save As activated %A_YYYY% %A_MMM% %A_DD% %A_Hour%:%A_Min%:%A_Sec% %DownloadFolder%%MyFolder0%\%MyFolder1%\%MyFolder2%\%MyFolder3%`n, %DownloadFolder%Downloaded.txt
+      Gosub, ClickSaveAs
+    }
+  }
+
+; Check if SaveAs window disappeared.
 WinWait, Save As, , 0
 If (ErrorLevel = 1)
     break
 }
 return
+	
 
-FinishDownload2:
-IfWinExist, File Transfer for PMS - Internet Explorer
-  WinClose , File Transfer for PMS - Internet Explorer
-return
 
-FinishDownload1:
 
+
+;Close 2 sub windows of INDRA
+;============================
+CloseSubWindows:
+Loop {
 IfWinExist, Download E-File - Internet Explorer
   WinClose , Download E-File - Internet Explorer
+WinWait, Download E-File - Internet Explorer, , 0
+If (ErrorLevel = 1)
+    break
+}
+
+Loop {
 IfWinExist, File Transfer for PMS - Internet Explorer
   WinClose , File Transfer for PMS - Internet Explorer
+WinWait, File Transfer for PMS - Internet Explorer, , 0
+If (ErrorLevel = 1)
+    break
+}
 
+return
+
+
+
+
+
+;Close all INDRA Windows
+;=======================
+CloseAllINDRAWindows:
+    Gosub, CloseSubWindows
+
+    Loop {
+    IfWinExist, Appserver Error - Internet Explorer
+      WinClose , Appserver Error - Internet Explorer
+    WinWait, Download E-File - Internet Explorer, , 0
+    If (ErrorLevel = 1)
+      break
+    } 
+  
+    Loop {
+    IfWinExist, PMS INDRA - Internet Explorer
+      WinClose , PMS INDRA - Internet Explorer
+    WinWait, Download E-File - Internet Explorer, , 0
+    If (ErrorLevel = 1)
+      break
+    }   
+
+    Loop {
+    IfWinExist, PMS Integrated Menu - Internet Explorer
+      WinClose , PMS Integrated Menu - Internet Explorer
+    WinWait, Download E-File - Internet Explorer, , 0
+    If (ErrorLevel = 1)
+      break
+    }   
+
+    Loop {
+    IfWinExist, JGC PMS - Internet Explorer
+      WinClose , JGC PMS - Internet Explorer
+    WinWait, Download E-File - Internet Explorer, , 0
+    If (ErrorLevel = 1)
+      break
+    }   
+
+    Loop {
+    IfWinExist, File Cleaning for PMS - Internet Explorer
+      WinClose , File Cleaning for PMS - Internet Explorer
+    WinWait, Download E-File - Internet Explorer, , 0
+    If (ErrorLevel = 1)
+      break
+    }   
+return
+
+
+
+
+
+
+;Close sub-windows and set delay timer after download 1 package of items
+;=======================================================================
+FinishDownload:
+Gosub, CloseSubWindows
+
+;set delay timer
 Loop
 {
 WinActivate, PMS INDRA - Internet Explorer
-WinWaitActive, PMS INDRA - Internet Explorer, , 0
+WinWaitActive, PMS INDRA - Internet Explorer, , 5
 if !ErrorLevel
   break
 sleep, 50
@@ -650,14 +874,13 @@ sleep, 50
 
 send, ^j
 sleep, 200
-
 WinGetTitle, DownloadWindowTitle , A
 DelayTime:=0
 If InStr(DownloadWindowTitle, "downloads in progress")
 {
   NumberOfDownload:= SubStr(DownloadWindowTitle, 1, InStr(DownloadWindowTitle, "downloads in progress") - 2)
-  If (NumberOfDownload > 4)
-    DelayTime:=120/(1+EXP(-(NumberOfDownload-6)))
+  If (NumberOfDownload > 6)
+    DelayTime:=90/(1+EXP(-(NumberOfDownload-6)))
     Loop
     {
       GuiControl,,DelayTime,%DelayTime%
@@ -671,9 +894,40 @@ If InStr(DownloadWindowTitle, "downloads in progress")
 ;View Downloads - Internet Explorer
 ;15.5 MB of 20170716004252_0000528911.zip downloaded
 ;3 downloads in progress
-
 return
 
-FinishDownload0:
-WinMinimize , PMS INDRA - Internet Explorer
+
+
+
+
+;If perform tasks if idle time is too long
+;=========================================
+trapper:
+If (A_TimeIdle > 300000 AND WinExist ("View Downloads - Internet Explorer")) {
+    sleep, 5000
+    FileAppend, trapper activated %A_YYYY% %A_MMM% %A_DD% %A_Hour%:%A_Min%:%A_Sec% %DownloadItem%`n, %DownloadFolder%Downloaded.txt
+    Gosub, ReloadINDRAandResetDownload
+}
+return
+
+
+
+
+
+;Reload INDRA and deleted lasted download item 
+; if idle time is more than 10 minutes
+; and all download is done. 
+;==============================================
+ReloadINDRAandResetDownload:
+  Gosub, CloseAllINDRAWindows    
+  sleep, 5000
+  Gosub, LoadINDRA
+  Loop {
+  IfExist, %DownloadItem%
+    FileRemoveDir, %DownloadItem%, 1
+  IfNotExist, %DownloadItem%
+    break
+  sleep 50
+  }
+  Gosub, StartDownload
 return
